@@ -1,7 +1,7 @@
 {
-  "name": "sprint14",
+  "name": "sprint15",
   "version": "1.0.0",
-  "description": "Authentication and Authorization",
+  "description": "Deploy of Mesto",
   "main": "app.js",
   "scripts": {
     "dev": "nodemon app.js",
@@ -9,14 +9,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PavelSolodkin/Sprint14.git"
+    "url": "git+https://github.com/PavelSolodkin/Sprint15.git"
   },
   "author": "pavel",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/PavelSolodkin/Sprint14/issues"
+    "url": "https://github.com/PavelSolodkin/Sprint15/issues"
   },
-  "homepage": "https://github.com/PavelSolodkin/Sprint14#readme",
+  "homepage": "https://github.com/PavelSolodkin/Sprint15#readme",
   "devDependencies": {
     "eslint": "^7.2.0",
     "eslint-config-airbnb-base": "^14.2.0",
@@ -26,9 +26,14 @@
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.19.0",
+    "celebrate": "^12.1.2",
+    "dotenv": "^8.2.0",
     "express": "^4.17.1",
+    "express-winston": "^4.0.5",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.9.20",
-    "validator": "^13.1.1"
+    "password-validator": "^5.0.3",
+    "validator": "^13.1.1",
+    "winston": "^3.3.3"
   }
 }

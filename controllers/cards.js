@@ -1,44 +1,46 @@
 const mongoose = require('mongoose');
+
 const Card = require('../models/card');
+const getStatusCodeByError = require('./getStatusCodeByError');
+const BadRequestError = require('../errors/BadRequestError');
+const ForbiddenError = require('../errors/ForbiddenError');
+const NotFoundError = require('../errors/NotFoundError');
 
 const { ObjectId } = mongoose.Types;
 
-module.exports.createCard = (req, res) => {
+module.exports.createCard = (req, res, next) => {
   const { name, link } = req.body;
-  const owner = req.user._id;
-  Card.create({ name, link, owner })
+  Card.create({ name, link, owner: req.user._id })
     .then((card) => res.send({ card }))
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        res.status(400).send({ message: err });
-      } else {
-        res.status(500).send({ message: err });
-      }
-    });
+    .catch((err) => getStatusCodeByError(err, next));
 };
 
-module.exports.getCards = (req, res) => {
+module.exports.getCards = (req, res, next) => {
   Card.find({})
-    .populate('card')
     .then((cards) => res.send({ cards }))
-    .catch((err) => res.status(500).send({ message: err.message }));
+    .catch(next);
 };
 
-// eslint-disable-next-line consistent-return
-module.exports.deleteCard = (req, res) => {
-  if (!ObjectId.isValid(req.params.id)) {
-    return res.status(400).send({ message: 'Невозможный ID карточки' });
+module.exports.deleteCard = (req, res, next) => {
+  if (ObjectId.isValid(req.params.cardId)) {
+    Card.findById(req.params.cardId)
+      .then((card) => {
+        if (!card) {
+          throw new NotFoundError('Карточка не найдена');
+        } else if (JSON.stringify(card.owner) !== JSON.stringify(req.user._id)) {
+          throw new ForbiddenError('Невозможно удалить чужую карточку');
+        } else {
+          Card.deleteOne(card, (err) => {
+            if (err) {
+              throw err;
+            } else {
+              res.send({ card });
+            }
+          });
+        }
+      })
+      .catch(next);
+  } else {
+    next(new BadRequestError('Некорректный ID карточки'));
   }
-  Card.findById(req.params.id)
-    .then((card) => {
-      if (!card) {
-        res.status(404).send({ message: 'Карточка не найдена' });
-      } else if (card.owner.toString() !== req.user._id) {
-        res.status(403).send({ message: 'Невозможно удалить чужую карточку' });
-      } else {
-        Card.findByIdAndRemove(req.params.id)
-          .then(() => res.status(200).send({ data: card }))
-          .catch((err) => res.status(500).send({ message: err.message }));
-      }
-    });
 };

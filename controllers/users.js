@@ -1,28 +1,41 @@
+/* eslint-disable consistent-return */
+/* eslint-disable no-unused-vars */
+const mongoose = require('mongoose');
+
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const key = require('../jwtconfig');
+
 const User = require('../models/user');
+const getStatusCodeByError = require('./getStatusCodeByError');
+const BadRequestError = require('../errors/BadRequestError');
+const AuthError = require('../errors/AuthError');
+const NotFoundError = require('../errors/NotFoundError');
 
-module.exports.getUsers = (req, res) => {
+const { ObjectId } = mongoose.Types;
+
+module.exports.getUsers = (req, res, next) => {
   User.find({})
-    .populate('user')
     .then((users) => res.send({ users }))
-    .catch((err) => res.status(500).send({ message: err.message }));
+    .catch(next);
 };
 
-module.exports.getSingleUser = (req, res) => {
-  User.findById(req.params.id)
-    .then((user) => {
-      if (!user) {
-        res.status(404).send({ message: 'Такой пользователь не найден' });
-      } else {
-        res.send({ user });
-      }
-    })
-    .catch(() => res.status(404).send({ message: 'Невозможный ID пользователя' }));
+module.exports.getSingleUser = (req, res, next) => {
+  if (ObjectId.isValid(req.params.userId)) {
+    User.findById(req.params.userId)
+      .then((user) => {
+        if (!user) {
+          throw new NotFoundError('Пользователь не найден');
+        } else {
+          res.send({ user });
+        }
+      })
+      .catch(next);
+  } else {
+    next(new BadRequestError('Введен некорректный ID'));
+  }
 };
 
-module.exports.createUser = (req, res) => {
+module.exports.createUser = (req, res, next) => {
   const {
     name, about, avatar, email,
   } = req.body;
@@ -33,28 +46,27 @@ module.exports.createUser = (req, res) => {
     .then((user) => res.send({
       _id: user._id, name: user.name, about: user.about, avatar: user.avatar, email: user.email,
     }))
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        res.status(400).send({ message: err });
-      } else {
-        res.status(401).send({ message: err });
-      }
-    });
+    .catch((err) => getStatusCodeByError(err, next));
 };
 
-module.exports.login = (req, res) => {
+module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
-  if (password) {
-    return User.findUserByCredentials(email, password)
-      .then((user) => {
-        const token = jwt.sign({ _id: user._id }, key, { expiresIn: '7d' });
-        res.status(200).send({ token });
-      })
-      .catch((err) => {
-        res
-          .status(401)
-          .send({ message: err.message });
-      });
-  }
-  return res.status(400).send({ message: 'Необходимо ввести пароль' });
+  let userId = '';
+  User.findOne({ email }).select('+password')
+    .then((user) => {
+      if (!user) {
+        return next(new AuthError('Неправильные почта или пароль'));
+      }
+      userId = user._id;
+      return bcrypt.compare(password, user.password)
+        .then((matched) => {
+          if (!matched) {
+            return next(new AuthError('Неправильные почта или пароль'));
+          }
+          const token = jwt.sign({ _id: user._id }, process.env.NODE_ENV === 'production' ? process.env.JWT_SECRET : 'dev-secret', { expiresIn: '7d' });
+          res.status(200).send({ token })
+            .end();
+        })
+        .catch(next);
+    });
 };
