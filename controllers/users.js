@@ -1,15 +1,13 @@
-/* eslint-disable consistent-return */
-/* eslint-disable no-unused-vars */
 const mongoose = require('mongoose');
 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const User = require('../models/user');
-const getStatusCodeByError = require('./getStatusCodeByError');
 const BadRequestError = require('../errors/BadRequestError');
 const AuthError = require('../errors/AuthError');
 const NotFoundError = require('../errors/NotFoundError');
+const UniqueUserError = require('../errors/UniqueUserError');
 
 const { ObjectId } = mongoose.Types;
 
@@ -37,16 +35,27 @@ module.exports.getSingleUser = (req, res, next) => {
 
 module.exports.createUser = (req, res, next) => {
   const {
-    name, about, avatar, email,
+    // eslint-disable-next-line no-unused-vars
+    name, about, avatar, email, password,
   } = req.body;
   bcrypt.hash(req.body.password, 10)
-    .then((hash) => User.create({
-      name, about, avatar, email, password: hash,
-    }))
-    .then((user) => res.send({
-      _id: user._id, name: user.name, about: user.about, avatar: user.avatar, email: user.email,
-    }))
-    .catch((err) => getStatusCodeByError(err, next));
+    .then((hash) => {
+      User.create({
+        name, about, avatar, email, password: hash,
+      })
+        .then((user) => res.send({
+          _id: user._id, name: user.name, about: user.about, avatar: user.avatar, email: user.email,
+        }))
+        .catch((err) => {
+          if (err.name === 'ValidationError') {
+            if (err.errors.email && err.errors.email.kind === 'unique') {
+              throw new UniqueUserError('Пользователь с таким E-mail уже существует');
+            }
+          }
+        })
+        .catch(next);
+    })
+    .catch(next);
 };
 
 module.exports.login = (req, res, next) => {
@@ -57,8 +66,10 @@ module.exports.login = (req, res, next) => {
       if (!user) {
         return next(new AuthError('Неправильные почта или пароль'));
       }
+      // eslint-disable-next-line no-unused-vars
       userId = user._id;
       return bcrypt.compare(password, user.password)
+        // eslint-disable-next-line consistent-return
         .then((matched) => {
           if (!matched) {
             return next(new AuthError('Неправильные почта или пароль'));

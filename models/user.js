@@ -1,7 +1,6 @@
-/* eslint-disable no-undef */
-/* eslint-disable func-names */
 const mongoose = require('mongoose');
 const validator = require('validator');
+const uniqueValidator = require('mongoose-unique-validator');
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -36,8 +35,10 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true,
+    minlength: 8,
     select: false,
   },
 });
 
+userSchema.plugin(uniqueValidator, { message: 'Пользователь с таким E-Mail уже существует' });
 module.exports = mongoose.model('user', userSchema);

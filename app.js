@@ -1,10 +1,9 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable no-console */
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 
-const { errors } = require('celebrate');
+const { celebrate, Joi, errors } = require('celebrate');
 
 const cardsRoute = require('./routes/cards');
 const usersRoute = require('./routes/users');
@@ -15,7 +14,8 @@ const { requestLogger, errorLogger } = require('./middlewares/logger');
 
 const NotFoundError = require('./errors/NotFoundError');
 
-require('dotenv').config();
+const validateUrl = require('./regex/UrlReg');
+const validatePass = require('./regex/PasReg');
 
 const app = express();
 const { PORT = 3000 } = process.env;
@@ -38,8 +38,35 @@ app.get('/crash-test', () => {
   }, 0);
 });
 
-app.post('/signup', createUser);
-app.post('/signin', login);
+app.post(
+  '/signin',
+  celebrate({
+    body: Joi.object().keys({
+      email: Joi.string().required().email(),
+      password: Joi.string().required().min(8),
+    }),
+  }),
+  login,
+);
+app.post(
+  '/signup',
+  celebrate({
+    body: Joi.object().keys({
+      email: Joi.string().required().email(),
+      password: Joi.string()
+        .required()
+        .pattern(validatePass)
+        .error(() => new Error('Необходим задать пароль, содержащий строчные латинские буквы и цифры длинной не менее 8 символов')),
+      name: Joi.string().required().min(2).max(30),
+      about: Joi.string().required().min(2).max(30),
+      avatar: Joi.string()
+        .required()
+        .pattern(validateUrl)
+        .error(() => new Error('Неверный формат ссылки')),
+    }),
+  }),
+  createUser,
+);
 
 app.use('/cards', auth, cardsRoute);
 app.use('/users', auth, usersRoute);
@@ -52,6 +79,7 @@ app.use(errorLogger);
 
 app.use(errors());
 
+// eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   const { statusCode = 500, message } = err;
   res.status(statusCode).send({
@@ -60,5 +88,6 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
+  // eslint-disable-next-line no-console
   console.log(`Приложение запущено на localhost:${PORT}`);
 });
