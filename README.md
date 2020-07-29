@@ -3,11 +3,11 @@ Mesto on server
 
 Проект доступен по ссылкам:
 
-http://mestopsolodkin.tk
+Публичный IP: 84.201.132.28
 
-https://mestopsolodkin.tk
+front-end сайтa: http://mestopsolodkin.tk   https://mestopsolodkin.tk
 
-Public IP: 84.201.132.28
+backend сайта: http://api.mestopsolodkin.tk   http://www.api.mestopsolodkin.tk
 
 Чтобы развернуть проект у себя на ПК необходимо установить Git, Node.js с NPM, Mongo и Postman
 
