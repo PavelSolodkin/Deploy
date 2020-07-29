@@ -12,6 +12,7 @@ const auth = require('./middlewares/auth');
 const { login, createUser } = require('./controllers/users');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
 
+const BadRequestError = require('./errors/BadRequestError');
 const NotFoundError = require('./errors/NotFoundError');
 
 const validateUrl = require('./regex/UrlReg');
@@ -43,7 +44,10 @@ app.post(
   celebrate({
     body: Joi.object().keys({
       email: Joi.string().required().email(),
-      password: Joi.string().required().min(8),
+      password: Joi.string()
+        .required()
+        .pattern(validatePass)
+        .error(() => new BadRequestError('Введите пароль, без него никак')),
     }),
   }),
   login,
@@ -56,13 +60,13 @@ app.post(
       password: Joi.string()
         .required()
         .pattern(validatePass)
-        .error(() => new Error('Необходим задать пароль, содержащий строчные латинские буквы и цифры длинной не менее 8 символов')),
+        .error(() => new BadRequestError('Необходимо задать пароль, содержащий строчные латинские буквы и цифры длинной не менее 8 символов')),
       name: Joi.string().required().min(2).max(30),
       about: Joi.string().required().min(2).max(30),
       avatar: Joi.string()
         .required()
         .pattern(validateUrl)
-        .error(() => new Error('Неверный формат ссылки')),
+        .error(() => new BadRequestError('Неверный формат ссылки')),
     }),
   }),
   createUser,

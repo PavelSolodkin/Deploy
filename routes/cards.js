@@ -1,6 +1,7 @@
 const cardsRouter = require('express').Router();
 const { celebrate, Joi } = require('celebrate');
 const { getCards, createCard, deleteCard } = require('../controllers/cards');
+const BadRequestError = require('../errors/BadRequestError');
 const validateUrl = require('../regex/UrlReg');
 
 cardsRouter.get('/', getCards);
@@ -11,13 +12,16 @@ cardsRouter.post('/', celebrate({
     link: Joi.string()
       .required()
       .pattern(validateUrl)
-      .error(() => new Error('Неверный формат ссылки')),
+      .error(() => new BadRequestError('Неверный формат ссылки')),
   }),
 }), createCard);
 
 cardsRouter.delete('/:cardId', celebrate({
   params: Joi.object().keys({
-    cardId: Joi.string().hex(),
+    cardId: Joi.string()
+      .length(24)
+      .hex()
+      .error(() => new BadRequestError('Некорректный ID карточки')),
   }),
 }), deleteCard);
 

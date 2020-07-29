@@ -1,12 +1,7 @@
-const mongoose = require('mongoose');
-
 const Card = require('../models/card');
 const getStatusCodeByError = require('../helpers/getStatusCodeByError');
-const BadRequestError = require('../errors/BadRequestError');
 const ForbiddenError = require('../errors/ForbiddenError');
 const NotFoundError = require('../errors/NotFoundError');
-
-const { ObjectId } = mongoose.Types;
 
 module.exports.createCard = (req, res, next) => {
   const { name, link } = req.body;
@@ -22,10 +17,7 @@ module.exports.getCards = (req, res, next) => {
 };
 
 module.exports.deleteCard = (req, res, next) => {
-  if (!ObjectId.isValid(req.params.cardId)) {
-    throw new BadRequestError('Некорректный ID');
-  }
-  return Card.findById(req.params.cardId)
+  Card.findById(req.params.cardId)
     .then((card) => {
       if (!card) {
         throw new NotFoundError('Карточка не найдена');
